@@ -1,0 +1,255 @@
+/**
+ * Copyright (c) 2010-2012 Miko Kinski
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of 
+ * this software and associated documentation files (the "Software"), to deal in 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to do 
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in 
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
+ * IN THE SOFTWARE.
+ */
+
+import metamodel::canopen;
+
+extension templates::ExtensionsJava;
+		
+/** Lists **/
+
+List [String] sizeOfDataType(String this) :
+	if(isString()) then {
+		"10"
+	} else {
+	  	"sizeof ("+getDataType()+")"
+	};	
+
+List [String] printValue(String this) :
+	if(this == "null") then {
+		"0x0"
+	} else {
+	   this.filterString()
+	};
+
+List [String] printdefaultValue(caNopen::CANopenObjectType this) :
+	if(this.defaultValue.toString() != "null" && !dataType.toString().isString()) then {
+		this.defaultValue
+	} else {
+	   "\""+this.defaultValue+"\""
+	};	
+
+List [String] checkforIndexStringArray(caNopen::CANopenObjectType this) :
+	if(!dataType.toString().isString()) then {
+		this.index.toString()
+	} else {
+	   this.index.toString()+"[10]"
+	};		
+		
+List [caNopen::NetworkManagementType] getNMT(caNopen::ISO15745ProfileContainerType this) :
+	iSO15745Profile.profileBody.get(1).eAllContents.typeSelect(caNopen::NetworkManagementType);
+
+List [caNopen::ApplicationProcessType] getAppProc(caNopen::ISO15745ProfileContainerType this) :
+	iSO15745Profile.profileBody.get(0).eAllContents.typeSelect(caNopen::ApplicationProcessType);
+
+List [caNopen::ApplicationLayersType] getAppLayer(caNopen::ISO15745ProfileContainerType this) :
+	iSO15745Profile.profileBody.get(1).eAllContents.typeSelect(caNopen::ApplicationLayersType);
+	
+List [Integer] getSubNumber(caNopen::ISO15745ProfileContainerType this, String idx) :
+	iSO15745Profile.profileBody.get(1).eAllContents.typeSelect(caNopen::ApplicationLayersType).cANopenObjectList.cANopenObject.select(e|e.index == idx).subNumber;	 
+	
+/** STRING **/
+
+String getAccess(caNopen::ParameterType this) :
+	 switch(access.toString()){
+		case 'read'				: "RO"
+		case 'readWrite'   		: "RW"
+		case 'readWriteInput'   : "RW"
+		case 'write'   			: "WO"
+		default : 'wrong_accessType'			 	
+	 };
+
+String getAccessType(caNopen::CANopenObjectType this) :
+	 switch(accessType.toString()){
+		case 'const': "RO"
+		case 'ro'   : "RO"	
+		case 'rw'   : "RW"
+		case 'wo'   : "WO"
+		default : 'wrong_accessType'			 	
+	 };
+
+String getAccessType(caNopen::CANopenSubObjectType this) :
+	 switch(accessType.toString()){
+		case 'const': "RO"
+		case 'ro'   : "RO"	
+		case 'rw'   : "RW"
+		case 'wo'   : "WO"
+		default : 'wrong_accessType'			 	
+	 };
+
+String getName(caNopen::ISO15745ProfileContainerType this) : 
+	iSO15745Profile.profileBody.get(0).eAllContents.typeSelect(caNopen::DeviceIdentityType).vendorName.value.get(0);
+
+String filterString(String this) :
+	replaceAll("[\\(\\)>-]","").replaceAll("NODEID","").replaceAll("[\\$\\+]","").replaceAll(" ","_");	 			 
+
+String filterString2(String this) :
+	replaceAll("[\\(\\)>-]","").replaceAll("NODEID","").replaceAll("[\\$\\+]","").replaceAll("_"," ");	 			 
+	
+
+String getObjectType(Integer this) :
+	switch(this){
+		case 0: "NULL"
+		case 2: "DOMAIN"
+		case 5: "DEFTYPE"
+		case 6: "DEFSTRUCT"
+		case 7: "VAR"
+		case 8: "ARRAY"
+		case 9: "RECORD"
+		default : 'wrong object type'
+	};
+
+String getDataTypeC(String this) :
+	switch(this){
+		case "BOOLEAN"   		: "boolean"
+		case "INTEGER8"  		: "int8"
+		case "INTEGER16" 		: "int16"
+		case "INTEGER32" 		: "int32"
+		case "UNS8"      		: "uint8"
+		case "UNS16"     		: "uint16"
+		case "UNS32"     		: "uint32"
+		case "REAL32"	 		: "real32"
+		case "VISIBLE_STRING" 	: "visible_string"
+		case "OCTET_STRING"   	: "octet_string"
+		case "UNICODE_STRING" 	: "unicode_string"
+		case "TIME_OF_DAY"		: "time_of_day"
+		case "TIME_DIFFERENCE"	: "time_difference"
+		case "DOMAIN"			: "domain"
+		case "INTEGER24"		: "int24"
+		case "REAL64"			: "real64"
+		case "INTEGER40"		: "int40"
+		case "INTEGER48"		: "int48"
+		case "INTEGER56"		: "int56"
+		case "INTEGER64"		: "int64"
+		case "UNS24"			: "uint24"
+		case "UNS40"			: "uint40"
+		case "UNS48"			: "uint48"
+		case "UNS56"			: "uint56"
+		case "UNS64"			: "uint64"
+		default : 'wrong data typ conversion to objdictdef.h'
+	};
+
+String getDataType(String this) :
+	switch(this){
+		case "0001": "BOOLEAN"
+		case "0002": "INTEGER8"
+		case "0003": "INTEGER16"
+		case "0004": "INTEGER32"
+		case "0005": "UNS8"
+		case "0006": "UNS16"
+		case "0007": "UNS32"
+		case "0008": "REAL32"
+		case "0009": "VISIBLE_STRING" //VISIBLE_STRING
+		case "000A": "OCTET_STRING"
+		case "000B": "UNICODE_STRING"
+		case "000C": "TIME_OF_DAY"
+		case "000D": "TIME_DIFFERENCE"
+		case "000F": "DOMAIN"
+		case "0010": "INTEGER24"
+		case "0011": "REAL64"
+		case "0012": "INTEGER40"
+		case "0013": "INTEGER48"
+		case "0014": "INTEGER56"
+		case "0015": "INTEGER64"
+		case "0016": "UNS24"
+		case "0018": "UNS40"
+		case "0019": "UNS48"
+		case "001A": "UNS56"
+		case "001B": "UNS64"
+		//still to improve the case of not type given
+		default : "REAL32"
+	};	
+	
+String getDefaultMissingIndexInitialization(String this, List[caNopen::NetworkManagementType] NMT) :
+	switch(this){
+		case '1003' : "\n/* index 0x1003 :      Predefined Error Field*/\n"+
+                    "\t\t\t\t\tUNS8 "+NMT.get(0).deviceCommissioning.nodeName+"_highestSubIndex_obj1003 = 0; /* number of subindex - 1*/\n"+
+                    "\t\t\t\t\tUNS32 "+NMT.get(0).deviceCommissioning.nodeName+"_obj1003[] =\n"+ 
+                    "\t\t\t\t\t{\n"+
+                    "\t\t\t\t\t  0x0	/* 0 */\n"+
+                    "\t\t\t\t\t};\n"+
+                    "\t\t\t\t\tODCallback_t "+NMT.get(0).deviceCommissioning.nodeName+"_Index1003_callbacks[] ="+
+                    " {"+
+                    "NULL,"+
+                    " NULL,"+
+                    " };\n"+
+                    "\t\t\t\t\tsubindex "+NMT.get(0).deviceCommissioning.nodeName+"_Index1003[] =\n"+ 
+                    "\t\t\t\t\t {\n"+
+                    "\t\t\t\t\t   { RW, valueRange_EMC, sizeof (UNS8), (void*)& "+NMT.get(0).deviceCommissioning.nodeName+"_highestSubIndex_obj1003 },\n"+
+                    "\t\t\t\t\t   { RO, uint32, sizeof (UNS32), (void*)& "+NMT.get(0).deviceCommissioning.nodeName+"_obj1003[0] }\n"+
+                    "\t\t\t\t\t };\n"
+		case '1005' : "\n/* index 0x1005 :      SYNC.*/\n"+
+                    "\t\t\t\t\tUNS32 "+NMT.get(0).deviceCommissioning.nodeName+"_obj1006 = 0x0;   /* 0 */"
+		case '1006' : "\n/* index 0x1006 :      Communication / Cycle Period*/\n"+
+                    "\t\t\t\t\tUNS32 "+NMT.get(0).deviceCommissioning.nodeName+"_obj1006 = 0x0;   /* 0 */"
+		case '1014' : "\n/* index 0x1014 :      Emergency.*/\n"+
+                    "\t\t\t\t\tUNS32 "+NMT.get(0).deviceCommissioning.nodeName+"_obj1014 = 0x80"+NMT.get(0).deviceCommissioning.nodeID+";   /* 128 + NodeID */"
+		case '1016' :"\n/* index 0x1016 :       Consumer Heartbeat Time.*/\n"+
+                    "\t\t\t\t\tUNS8 "+NMT.get(0).deviceCommissioning.nodeName+"_highestSubIndex_obj1016 = 0;"+
+                    "\t\t\t\t\tUNS32 "+NMT.get(0).deviceCommissioning.nodeName+"_obj1016[]={0};"
+		case '1017' : "\n/* index 0x1017 :      Producer Heartbeat Time.*/\n"+
+                    "\t\t\t\t\tUNS16 "+NMT.get(0).deviceCommissioning.nodeName+"_obj1017 = 0x0;   /* 0 */"
+		default: "wrong Index value"
+	};	
+	
+/** INTS **/
+
+int getIndexValue(caNopen::CANopenObjectType this) :
+	index.toString().toCharList().get(0).asInteger();
+	
+/** BOOLS **/
+
+Boolean setBool(Boolean this) : 
+	true;	
+	 	 
+Boolean isRecord(caNopen::CANopenObjectType this) :
+		this.objectType.getObjectType() == "RECORD";	 	 
+
+Boolean isAlreadyDefined(caNopen::CANopenObjectType this) :
+		this.getIndexValue() > 1;	 	 
+
+Boolean isArray(caNopen::CANopenObjectType this) :
+		this.objectType.getObjectType() == "ARRAY";	 	 
+
+Boolean isArrayRecord(caNopen::CANopenObjectType this) :
+		this.objectType.getObjectType() == "ARRAY" || this.objectType.getObjectType() == "RECORD";	 	 
+		
+Boolean isTransmitPDOParameterRange(caNopen::CANopenObjectType this) :
+		index.toString().transformHex2IntAll() >= 6144 && index.toString().transformHex2IntAll() <= 6655;	
+
+Boolean isinPODReceiveRange(caNopen::CANopenObjectType this) :
+		index == "1600" || index == "1A00";
+
+Boolean isCallback(caNopen::CANopenObjectType this) :
+		index == "1006" || index == "1017" || isTransmitPDOParameterRange();
+		
+//Boolean isCallback(caNopen::CANopenObjectType this) :
+//		index == "1003" || index == "1005" || index == "1006" || index == "1017" || isTransmitPDOParameterRange();
+
+Boolean isString(String this) :
+		getDataType() =="VISIBLE_STRING" || getDataType() == "OCTET_STRING" || getDataType() =="UNICODE_STRING";	
+
+Boolean isinComList(String this) :
+	this == "1003" || this == "1005" || this == "1006" || this == "1014" || this == "1016" || this == "1017";
+
+
+Boolean isArrayRecordDefstruct(caNopen::CANopenObjectType this) :
+		this.objectType.getObjectType() == "ARRAY" || this.objectType.getObjectType() == "RECORD" || this.objectType.getObjectType() == "DEFSTRUCT" ;	 	 

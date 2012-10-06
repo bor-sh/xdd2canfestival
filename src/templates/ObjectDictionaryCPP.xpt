@@ -1,0 +1,200 @@
+«REM»
+/**
+ * Copyright (c) 2010-2012 Miko Kinski
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of 
+ * this software and associated documentation files (the "Software"), to deal in 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to do 
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in 
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
+ * IN THE SOFTWARE.
+ */
+«ENDREM»
+«IMPORT metamodel::canopen»
+
+«EXTENSION templates::ExtensionsCAN»
+«EXTENSION templates::ExtensionsJava»
+
+«DEFINE Root FOR caNopen::ISO15745ProfileContainerType-»
+	«EXPAND OD_HIGHLEVEL_HEADER FOR this»
+	«EXPAND OD_HIGHLEVEL_SOURCE FOR this»
+	«EXPAND OD_DOCUMENTATION FOR this»
+«ENDDEFINE»
+
+«DEFINE OD_HIGHLEVEL_HEADER FOR caNopen::ISO15745ProfileContainerType»
+«FILE getName().toFirstUpper()+".h"-»
+«EXPAND COMMENT_H FOR this»
+#ifndef _«getName().toUpperCase()»_H
+#define _«getName().toUpperCase()»_H
+
+#include "data.h"
+#include <vector>
+#include <cstdio>
+
+class «getName().toFirstUpper()» 	
+{
+public:
+    «getName().toFirstUpper()»();
+
+    /* Node description */	
+
+«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject.select(e|e.index.toString().length > 3) AS canObject-»
+             «IF canObject.getIndexValue() > 1-»
+                «IF !canObject.dataType.toString().getDataType().isString()-»
+                   «IF !canObject.isArrayRecordDefstruct()-»
+    «canObject.dataType.toString().getDataType()» «canObject.name.toString().filterString()»;                                   /* Mapped at index 0x«canObject.index», subindex 0x00 */
+					«ELSE-»
+    «canObject.cANopenSubObject.get(1).dataType.toString().getDataType()» *«canObject.name.toString().filterString()»;          /* Mapped at index 0x«canObject.index», subindex 0x«canObject.cANopenSubObject.get(0).subIndex» */								
+					«ENDIF-»	
+				«ENDIF-»	
+			 «ENDIF-»
+«ENDFOREACH»
+	
+		
+};
+
+#endif /* _«getName().toUpperCase()»_H */
+
+«ENDFILE»
+«ENDDEFINE»
+
+«DEFINE OD_HIGHLEVEL_SOURCE FOR caNopen::ISO15745ProfileContainerType»
+«FILE getName().toFirstUpper()+".cpp"»
+«EXPAND COMMENT_C FOR this»	
+
+#include "«getName().toFirstUpper()».h"
+
+«getName().toFirstUpper()»::«getName().toFirstUpper()»() {
+/**************************************************************************/
+/* Declaration of mapped variables                                        */
+/**************************************************************************/
+«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject.select(e|e.index.toString().length > 3) AS canObject-»
+			 «IF canObject.getIndexValue() > 1-»
+			  	«IF !canObject.isArrayRecordDefstruct()-»
+			  			«IF canObject.defaultValue.toString() != "null"-»
+	«canObject.name.toString().filterString()» = «canObject.defaultValue»;   /* Mapped at index 0x«canObject.index», subindex 0x00 */
+						«ELSE-»
+							 «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.isEmpty-»						
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+	    «canObject.name.toString().filterString()» = «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).value»; 
+								«ELSE-»
+		«canObject.name.toString().filterString()» = 0x0;						
+								«ENDIF-»
+							«ELSE-»
+		«canObject.name.toString().filterString()» = 0x0;						
+							«ENDIF-»
+						«ENDIF-»
+				«ELSE-»
+ 	«canObject.name.toString().filterString()» = new «canObject.cANopenSubObject.get(1).dataType.toString().getDataType()»[«canObject.subNumber-1»]; 	/* Mapped at index 0x«canObject.index», subindex 0x«canObject.cANopenSubObject.get(1).subIndex» */
+					«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+						«IF iter.counter0 > 0-»
+			  				«IF canObject.defaultValue.toString() != "null"-»
+	«canObject.name.toString().filterString()»[«iter.counter0-1»] = «canSubObject.defaultValue»;			
+							«ELSE-»
+							 «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.isEmpty-»
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+	«canObject.name.toString().filterString()»[«iter.counter0-1»] = «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).value»; 
+								«ELSE-»
+	«canObject.name.toString().filterString()»[«iter.counter0-1»] = 0x0;						
+								«ENDIF-»
+							 «ENDIF-»	
+							«ENDIF-»		
+						«ENDIF-»			
+					«ENDFOREACH-»				
+				«ENDIF-»
+			 «ENDIF-»
+«ENDFOREACH-»
+}
+
+«ENDFILE»
+«ENDDEFINE»
+
+«REM» DOKUMENTATION PURPOSE «ENDREM»
+
+«DEFINE OD_DOCUMENTATION FOR caNopen::ISO15745ProfileContainerType»
+«FILE "od_doc"+getName().toFirstUpper()+".tex"»
+
+\begin{longtable}{| l | c | c | c | c |}
+    \hline
+    
+    \textbf{Name} & \textbf{Datentyp} & \textbf{Wert} & \textbf{Index} & \textbf{Subindex} \\ \hline \hline
+«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject AS canObject-»
+				  	«IF !canObject.isArrayRecordDefstruct()-»
+				  		«IF canObject.defaultValue.toString() != "null"-»
+	\texttt{«canObject.name.toString().filterString2()»} & «canObject.dataType.toString().getDataType()» & «canObject.defaultValue.toString().filterString2()» & 0x«canObject.index» & 0  	\\ \hline								
+						«ELSE-»
+						   «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.isEmpty-»
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+		\texttt{«canObject.name.toString().filterString2()»} & «canObject.dataType.toString().getDataType()» & «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).value.toString().filterString2()» & 0x«canObject.index» & 0  	\\ \hline								
+								«ELSE-»
+		\texttt{«canObject.name.toString().filterString2()»} & «canObject.dataType.toString().getDataType()» & 0 & 0x«canObject.index» & 0  	\\ \hline								
+								«ENDIF-»
+							«ELSE-»
+		\texttt{«canObject.name.toString().filterString2()»} & «canObject.dataType.toString().getDataType()» & 0 & 0x«canObject.index» & 0  	\\ \hline								
+							«ENDIF-»
+						«ENDIF-»				  	
+					«ELSE-»
+						«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+		  				«IF iter.counter0 == 0-»
+								«IF canObject.defaultValue.toString() != "null"-»
+	\texttt{«canObject.name.toString().filterString2()»} & «canSubObject.dataType.toString().getDataType()» & «canObject.defaultValue.toString().filterString2()» & 0x«canObject.index» & 0x«canSubObject.subIndex» 	\\ \hline														
+								«ELSE-»							
+	\texttt{«canObject.name.toString().filterString2()»} & «canSubObject.dataType.toString().getDataType()» & 0 & 0x«canObject.index» & 0x«canSubObject.subIndex» 	\\ \hline							
+								«ENDIF-»	
+						«ELSE-»
+						   «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.isEmpty-»
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+	\hspace{1cm}\textit{«canSubObject.name.toString().filterString2()»} & «canSubObject.dataType.toString().getDataType()» & «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).value.toString().filterString2()» & 0x«canObject.index» & 0x«canSubObject.subIndex» 	\\ \hline							
+								«ELSE-»
+	\hspace{1cm}\textit{«canSubObject.name.toString().filterString2()»} & «canSubObject.dataType.toString().getDataType()» & 0 & 0x«canObject.index» & 0x«canSubObject.subIndex» 	\\ \hline							
+								«ENDIF-»
+							«ENDIF-»
+						«ENDIF-»	
+						«ENDFOREACH-»									
+					«ENDIF-»	
+«ENDFOREACH»
+    \hline
+\end{longtable}
+
+«ENDFILE»
+«ENDDEFINE»
+
+
+«DEFINE COMMENT_H FOR caNopen::ISO15745ProfileContainerType»
+/**
+ *  This file is automatic generated by the OAW Workflow
+ *  
+ *  @file «getName()».h
+ *  @author 
+ *  @date 
+ *  @defgroup «getName().toUpperCase()»
+ *  @ingroup od
+ * 
+ *  @brief Based on CanFestival generator implementation (gen_cfile.py) but using xdd file as Import and xsd Model from CANopen (http://www.can-cia.org/).
+ */ 
+«ENDDEFINE»
+
+«DEFINE COMMENT_C FOR caNopen::ISO15745ProfileContainerType»
+/**
+ *  This file is automatic generated by the OAW Workflow
+ *
+ *  @file «getName()».c
+ *  @author
+ *  @date 
+ * 
+ *  @ingroup od
+ *  @brief Based on CanFestival generator implementation (gen_cfile.py) but using xdd file as Import and xsd Model from CANopen (http://www.can-cia.org/).
+ */ 
+«ENDDEFINE»
+

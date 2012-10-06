@@ -1,0 +1,519 @@
+«REM»
+/**
+ * Copyright (c) 2010-2012 Miko Kinski
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of 
+ * this software and associated documentation files (the "Software"), to deal in 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to do 
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in 
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
+ * IN THE SOFTWARE.
+ */
+«ENDREM»
+
+«IMPORT metamodel::canopen»
+
+«EXTENSION templates::ExtensionsCAN»
+«EXTENSION templates::ExtensionsJava»
+
+«DEFINE Root FOR caNopen::ISO15745ProfileContainerType-»
+	«EXPAND OD_HEADER FOR this»
+	«EXPAND OD_SOURCE FOR this»
+	«EXPAND OD_DOCUMENTATION FOR this»
+«ENDDEFINE»
+
+«DEFINE OD_HEADER FOR caNopen::ISO15745ProfileContainerType»
+«FILE getName()+".h"-»
+«EXPAND COMMENT_H FOR this»
+#ifndef 	«getName().toUpperCase()»_H
+#define 	«getName().toUpperCase()»_H
+
+#include "config.h"
+
+#ifdef «getName().toUpperCase()»
+
+#include "data.h"
+	
+/* Prototypes of function provided by object dictionnary */
+UNS32 «getNMT().get(0).deviceCommissioning.nodeName»_valueRangeTest (UNS8 typeValue, void * value);
+const indextable * «getNMT().get(0).deviceCommissioning.nodeName»_scanIndexOD (UNS16 wIndex, UNS32 * errorCode, ODCallback_t **callbacks);	
+	
+/* Node description */	
+	
+/**
+ * @ingroup «getName().toUpperCase()»
+ * @brief global CO_Data specification for canfestival 
+ */
+extern CO_Data «getNMT().get(0).deviceCommissioning.nodeName»_Data;
+«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject.select(e|e.index.toString().length > 3) AS canObject-»
+			 «IF canObject.getIndexValue() > 1-»
+			 	«IF canObject.dataType.toString().getDataType() == "VISIBLE_STRING"-»
+				  	«IF !canObject.isArrayRecordDefstruct()-»
+/**
+ * @ingroup «getName().toUpperCase()»
+ * @brief mapped at index 0x«canObject.index», subindex 0x00 
+ */
+extern UNS8 «canObject.name.toString().filterString()»[10]; 									
+					«ELSE-»
+						«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+							«IF iter.counter0 > 0-»
+/**
+ * @ingroup «getName().toUpperCase()»
+ * @brief mapped at index 0x«canObject.index», subindex 0x«canSubObject.subIndex» 
+ */
+extern UNS8 «canObject.name.toString().filterString()»_«canSubObject.name.toString().filterString()»[10]; 					
+							«ENDIF-»			
+						«ENDFOREACH-»				
+					«ENDIF-»				 		
+			 	«ELSE-»
+				  	«IF !canObject.isArrayRecordDefstruct()-»
+/**
+ * @ingroup «getName().toUpperCase()»
+ * @brief mapped at index 0x«canObject.index», subindex 0x00 
+ */
+extern «canObject.dataType.toString().getDataType()» «canObject.name.toString().filterString()»; 									
+					«ELSE-»
+						«IF canObject.isRecord()-»						
+						«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+							«IF iter.counter0 > 0-»
+/**
+ * @ingroup «getName().toUpperCase()»
+ * @brief mapped at index 0x«canObject.index», subindex 0x«canObject.cANopenSubObject.get(0).subIndex» 
+ */
+extern «canSubObject.dataType.toString().getDataType()» «canSubObject.name.toString().filterString()»; 															
+							«ENDIF-»
+						«ENDFOREACH-»				
+						«ELSE-»
+/**
+ * @ingroup «getName().toUpperCase()»
+ * @brief mapped at index 0x«canObject.index», subindex 0x«canObject.cANopenSubObject.get(0).subIndex»
+ */
+extern «canObject.cANopenSubObject.get(1).dataType.toString().getDataType()» «canObject.name.toString().filterString()»[«canObject.subNumber-1»]; 																
+						«ENDIF-»
+					«ENDIF-»	
+				«ENDIF-»	
+			 «ENDIF-»
+«ENDFOREACH»
+
+#endif // «getName().toUpperCase()»
+
+#endif // «getName().toUpperCase()»_H
+
+«ENDFILE»
+«ENDDEFINE»
+
+«DEFINE OD_SOURCE FOR caNopen::ISO15745ProfileContainerType»
+«REM» the c file «ENDREM»	
+«FILE getName()+".c"»
+«EXPAND COMMENT_C FOR this»	
+
+#include "«getName()».h"
+
+#ifdef «getName().toUpperCase()»
+
+/**************************************************************************/
+/* Declaration of mapped variables                                        */
+/**************************************************************************/
+«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject.select(e|e.index.toString().length > 3) AS canObject-»
+			 «IF canObject.getIndexValue() > 1-»
+			  	«IF !canObject.isArrayRecordDefstruct()-»
+			  		«IF canObject.dataType.toString().getDataType() == "VISIBLE_STRING"-»
+			  			«IF canObject.defaultValue.toString() != "null"-»
+UNS8 «canObject.name.toString().filterString()»[10] = "«canObject.defaultValue»"; 									/* Mapped at index 0x«canObject.index», subindex 0x00 */
+						«ELSE-»
+							«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+UNS8 «canObject.name.toString().filterString()»[10] = "«getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).value»"; 
+							«ELSE-»
+UNS8 «canObject.name.toString().filterString()»[10] = "0x0";						
+							«ENDIF-»
+						«ENDIF-»
+			  		«ELSE-»
+			  			«IF canObject.defaultValue.toString() != "null"-»
+«canObject.dataType.toString().getDataType()» «canObject.name.toString().filterString()» = «canObject.defaultValue»; 									/* Mapped at index 0x«canObject.index», subindex 0x00 */
+						«ELSE-»
+							«IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.isEmpty-»
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+	«canObject.dataType.toString().getDataType()» «canObject.name.toString().filterString()» = «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).value»; 
+								«ELSE-»
+	«canObject.dataType.toString().getDataType()» «canObject.name.toString().filterString()» = 0x0;						
+								«ENDIF-»
+							«ELSE-»
+	«canObject.dataType.toString().getDataType()» «canObject.name.toString().filterString()» = 0x0;						
+							«ENDIF-»
+						«ENDIF-»
+					«ENDIF-»
+				«ELSE-»
+			«IF canObject.isRecord()-»
+					«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+						«IF iter.counter0 > 0-»
+			  				«IF canObject.defaultValue.toString() != "null"-»
+«canSubObject.dataType.toString().getDataType()» «canSubObject.name.toString().filterString()» = «canSubObject.defaultValue»;			
+							«ELSE-»
+							  «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.isEmpty-»
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+«canSubObject.dataType.toString().getDataType()» «canSubObject.name.toString().filterString()» = «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).value»; 
+								«ELSE-»
+«canSubObject.dataType.toString().getDataType()» «canSubObject.name.toString().filterString()» = 0x0;						
+								«ENDIF-»
+							  «ELSE-»
+«canSubObject.dataType.toString().getDataType()» «canSubObject.name.toString().filterString()» = 0x0;
+							  «ENDIF-»	
+							«ENDIF-»		
+						«ENDIF-»			
+					«ENDFOREACH-»							
+			«ELSE-»
+«canObject.cANopenSubObject.get(1).dataType.toString().getDataType()» «canObject.name.toString().filterString()»[] = 	/* Mapped at index 0x«canObject.index», subindex 0x«canObject.cANopenSubObject.get(1).subIndex» */
+	{
+					«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+						«IF iter.counter0 > 0-»
+			  				«IF canObject.defaultValue.toString() != "null"-»
+									«canSubObject.defaultValue»,			
+							«ELSE-»
+							  «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.isEmpty-»
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+									«getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).value», 
+								«ELSE-»
+									0x0,						
+								«ENDIF-»
+							  «ELSE-»
+									0x0,
+							  «ENDIF-»	
+							«ENDIF-»		
+						«ENDIF-»			
+					«ENDFOREACH-»				
+	};
+			«ENDIF-»
+				«ENDIF-»
+			 «ENDIF-»
+«ENDFOREACH-»
+
+«REM» Declaration of value range types is not implemented«ENDREM»
+
+/**************************************************************************/
+/* Declaration of value range types                                       */
+/**************************************************************************/
+
+#define valueRange_EMC 0x9F /* Type for index 0x1003 subindex 0x00 (only set of value 0 is possible) */
+«EXPAND VALUE_RANGE_DEFINE FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject.select(e|e.index.toString().length == 3)-»
+UNS32 «getNMT().get(0).deviceCommissioning.nodeName»_valueRangeTest (UNS8 typeValue, void * value)
+{
+  switch (typeValue) {
+    case valueRange_EMC:
+      if (*(UNS8*)value != (UNS8)0) return OD_VALUE_RANGE_EXCEEDED;
+      break;
+	  «EXPAND VALUE_RANGE_SWITCH FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject.select(e|e.index.toString().length == 3)-»
+  }
+  return 0;
+}
+
+/**************************************************************************/
+/* The node id                                                            */
+/**************************************************************************/
+/* node_id default value.*/
+UNS8 «getNMT().get(0).deviceCommissioning.nodeName»_bDeviceNodeId = «getNMT().get(0).deviceCommissioning.nodeID»;
+
+/**************************************************************************/
+/* Array of message processing information */
+
+«IF getNMT().get(0).cANopenGeneralFeatures.bootUpSlave-»
+const UNS8 «getNMT().get(0).deviceCommissioning.nodeName»_iam_a_slave = 1;
+«ELSE-»
+const UNS8 «getNMT().get(0).deviceCommissioning.nodeName»_iam_a_slave = 0;
+«ENDIF-»
+
+«IF !getSubNumber("1016").isEmpty-»
+	«IF getSubNumber("1016").get(0)-1 > 0-»
+TIMER_HANDLE «getNMT().get(0).deviceCommissioning.nodeName»_heartBeatTimers«getSubNumber("1016")-1» = {«"TIMER_NONE".expandXTimes(getSubNumber("1016").get(0)-1)»};
+	«ENDIF-»
+«ELSE-»
+TIMER_HANDLE «getNMT().get(0).deviceCommissioning.nodeName»_heartBeatTimers[1];
+«ENDIF-»
+		
+/*
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+                               OBJECT DICTIONARY
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+*/
+
+//not defined in the communication list
+«FOREACH {"1003","1005","1006","1014","1016","1017"} AS index-»
+ «IF !getAppLayer().get(0).cANopenObjectList.toString().toString().isinCommunicationList(index)»
+	«index.getDefaultMissingIndexInitialization(getNMT())»
+ «ENDIF»	
+«ENDFOREACH-»
+
+//In the Communication list defined
+«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject.select(e|e.index.toString().length > 3) AS canObject-»
+/* index 0x«canObject.index» : «canObject.name». */	
+	«IF !canObject.isArrayRecordDefstruct()-»
+	  «IF !canObject.isAlreadyDefined()-»
+		«IF canObject.defaultValue.toString() != "null"-»
+					«canObject.dataType.toString().getDataType().replaceAll("VISIBLE_STRING","UNS8")» «getNMT().get(0).deviceCommissioning.nodeName»_obj«canObject.checkforIndexStringArray().get(0)» =  «canObject.printdefaultValue().get(0)»;
+		«ELSE-»
+					«canObject.dataType.toString().getDataType().replaceAll("VISIBLE_STRING","UNS8")» «getNMT().get(0).deviceCommissioning.nodeName»_obj«canObject.checkforIndexStringArray().get(0)» =  «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).value.toString().printValue().get(0)»;
+			«IF  canObject.isCallback() || canObject.isTransmitPDOParameterRange()-»
+					ODCallback_t «getNMT().get(0).deviceCommissioning.nodeName»_Index«canObject.index»_callbacks[] = { NULL };
+			«ENDIF-»
+		«ENDIF-»
+      «ENDIF-»       		 
+                    subindex «getNMT().get(0).deviceCommissioning.nodeName»_Index«canObject.index»[] = 
+                     {
+        «IF canObject.accessType.toString() != "null"-»                     
+       		«IF canObject.getIndexValue() > 1-»                     		
+	                 	{ «canObject.getAccessType()», «canObject.dataType.toString().getDataType().getDataTypeC()», «canObject.dataType.toString().sizeOfDataType().get(0)», (void*)&«canObject.name.toString().filterString()» }
+       		«ELSE-»
+	                 	{ «canObject.getAccessType()», «canObject.dataType.toString().getDataType().getDataTypeC()», «canObject.dataType.toString().sizeOfDataType().get(0)», (void*)&«getNMT().get(0).deviceCommissioning.nodeName»_obj«canObject.index» }
+       		«ENDIF-»
+        «ELSE-»
+		   		«IF canObject.getIndexValue() > 1-»                     		
+		                   	{ «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).getAccess().get(0)», «canObject.dataType.toString().getDataType().getDataTypeC()», sizeof f(«canObject.dataType.toString().getDataType()»), (void*)&«canObject.name.toString().filterString()» }
+	      		«ELSE-»
+		                 	{ «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).getAccess().get(0)», «canObject.dataType.toString().getDataType().getDataTypeC()», sizeof k(«canObject.dataType.toString().getDataType()»), (void*)&«getNMT().get(0).deviceCommissioning.nodeName»_obj«canObject.index» }
+	       		«ENDIF-»
+       	«ENDIF-»
+             		 };
+	«ELSE-»
+		«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+			«IF iter.counter0 == 0-»
+			 		«canSubObject.dataType.toString().getDataType()» «getNMT().get(0).deviceCommissioning.nodeName»_highestSubIndex_obj«canObject.index» = «getSubNumber(canObject.index.toString()).get(0) - 1» ; /* number of subindex - «getSubNumber(canObject.index.toString())»*/	
+		  		«IF  canObject.isCallback()-»
+					ODCallback_t «getNMT().get(0).deviceCommissioning.nodeName»_Index«canObject.index»_callbacks[] = { «"NULL".expandXTimes(getSubNumber(canObject.index.toString()).get(0))» };	  		
+				«ENDIF-»
+		  		«IF canObject.isArray() && !canObject.isAlreadyDefined() || canObject.isinPODReceiveRange()-»
+		  			«canObject.cANopenSubObject.get(1).dataType.toString().getDataType()» «getNMT().get(0).deviceCommissioning.nodeName»_obj«canObject.index»[] =
+		  			{
+		  		«ENDIF-»
+			«ELSE-»
+				«IF canObject.isArray() && !canObject.isAlreadyDefined() || canObject.isinPODReceiveRange()-»
+					«getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).value.toString().printValue().get(0)»,
+						«IF canObject.subNumber-1 == iter.counter0-» 
+					};
+						«ENDIF-»
+				«ELSEIF !canObject.isAlreadyDefined()-»
+                    «canSubObject.dataType.toString().getDataType()» «getNMT().get(0).deviceCommissioning.nodeName»_obj«canObject.index»_«canSubObject.name.toString().filterString()» =  «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).value.toString().printValue().get(0)»;	
+				«ENDIF-»		
+		  	«ENDIF-»
+		«ENDFOREACH-»				
+                    subindex «getNMT().get(0).deviceCommissioning.nodeName»_Index«canObject.index»[] = 
+                     {
+		«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+			«IF iter.counter0 == 0-»
+				«IF canObject.index == "1003" && canSubObject.subIndex == "00"-»				
+		 			   { «canSubObject.getAccessType()», valueRange_EMC, sizeof («canSubObject.dataType.toString().getDataType()»), (void*)&«getNMT().get(0).deviceCommissioning.nodeName»_highestSubIndex_obj«canObject.index» },
+				«ELSEIF canObject.index !="1003"-»
+		 			   { «canSubObject.getAccessType()», «canSubObject.dataType.toString().getDataType().getDataTypeC()», sizeof («canSubObject.dataType.toString().getDataType()»), (void*)&«getNMT().get(0).deviceCommissioning.nodeName»_highestSubIndex_obj«canObject.index» },
+				«ENDIF-»
+			«ELSE-»
+			 «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).getAccess().isEmpty-»
+				«IF canObject.isArray() && canObject.isAlreadyDefined()-»
+			           { «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).getAccess().get(0)», «canSubObject.dataType.toString().getDataType().getDataTypeC()», sizeof («canSubObject.dataType.toString().getDataType()»), (void*)&«canObject.name.toString().filterString()»[«iter.counter0-1»]},
+			    «ELSEIF canObject.isArray() && !canObject.isAlreadyDefined() || canObject.isinPODReceiveRange()-»       
+			           { «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).getAccess().get(0)», «canSubObject.dataType.toString().getDataType().getDataTypeC()», sizeof («canSubObject.dataType.toString().getDataType()»), (void*)&«getNMT().get(0).deviceCommissioning.nodeName»_obj«canObject.index»[«iter.counter0-1»]}	,
+				«ELSE-»
+   	           		«IF canObject.getIndexValue() > 1-»                     		
+			      	   { «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).getAccess().get(0)», «canSubObject.dataType.toString().getDataType().getDataTypeC()», sizeof («canSubObject.dataType.toString().getDataType()»), (void*)&«canSubObject.name.toString().filterString()» },
+               		«ELSE-»
+			           { «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).getAccess().get(0)», «canSubObject.dataType.toString().getDataType().getDataTypeC()», sizeof («canSubObject.dataType.toString().getDataType()»), (void*)&«getNMT().get(0).deviceCommissioning.nodeName»_obj«canObject.index»_«canSubObject.name.toString().filterString()» },
+					«ENDIF-»
+				«ENDIF-»
+			  «ELSE-»
+	           		   { «canSubObject.getAccessType()», «canSubObject.dataType.toString().getDataType().getDataTypeC()», sizeof («canSubObject.dataType.toString().getDataType()»), (void*)&«canObject.name.toString().filterString()»[«iter.counter0-1»]},			  
+			  «ENDIF-»	
+			«ENDIF-»									
+		«ENDFOREACH-»				
+					 };						
+	«ENDIF-»	
+«ENDFOREACH-»
+
+/**************************************************************************/
+/* Declaration of pointed variables                                       */
+/**************************************************************************/
+
+const indextable «getNMT().get(0).deviceCommissioning.nodeName»_objdict[] = 
+{
+«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject.select(e|e.index.toString().length > 3) AS canObject-»
+	{ (subindex*)«getNMT().get(0).deviceCommissioning.nodeName»_Index«canObject.index»,sizeof(«getNMT().get(0).deviceCommissioning.nodeName»_Index«canObject.index»)/sizeof(«getNMT().get(0).deviceCommissioning.nodeName»_Index«canObject.index»[0]),0x«canObject.index»},
+«ENDFOREACH-»
+};		
+	
+const indextable * «getNMT().get(0).deviceCommissioning.nodeName»_scanIndexOD (UNS16 wIndex, UNS32 * errorCode, ODCallback_t **callbacks)
+{
+	int i;
+	*callbacks = NULL;
+	switch(wIndex){
+		«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject AS canObject ITERATOR iter-»
+			«IF canObject.isCallback()-»
+		case 0x«canObject.index»: i = «iter.counter0»;*callbacks = «getNMT().get(0).deviceCommissioning.nodeName»_Index«canObject.index»_callbacks; break;
+			«ELSE-»
+		case 0x«canObject.index»: i = «iter.counter0»; break;
+			«ENDIF-»
+		«ENDFOREACH-»
+		default:
+			*errorCode = OD_NO_SUCH_OBJECT;
+			return NULL;
+	}
+	*errorCode = OD_SUCCESSFUL;
+	return &«getNMT().get(0).deviceCommissioning.nodeName»_objdict[i];		
+}	
+
+/* 
+ * To count at which received SYNC a PDO must be sent.
+ * Even if no pdoTransmit are defined, at least one entry is computed
+ * for compilations issues.
+ */
+
+«IF getNMT().cANopenGeneralFeatures.nrOfTxPDO.get(0) > 0-»
+s_PDO_status «getNMT().get(0).deviceCommissioning.nodeName»_PDO_status«getNMT().cANopenGeneralFeatures.nrOfTxPDO» = {«"s_PDO_status_Initializer".expandXTimes(getNMT().cANopenGeneralFeatures.nrOfTxPDO.get(0))»}; 
+«ELSE-»
+s_PDO_status «getNMT().get(0).deviceCommissioning.nodeName»_PDO_status[0] = {s_PDO_status_Initializer};
+«ENDIF-»
+  
+const quick_index «getNMT().get(0).deviceCommissioning.nodeName»_firstIndex = {
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("SDO_SVR",0)»,		/* SDO_SVR */
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("SDO_CLT",0)»,		/* SDO_CLT */
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("PDO_RCV",0)»,		/* PDO_RCV */
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("PDO_RCV_MAP",0)», 	/* PDO_RCV_MAP */
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("PDO_TRS",0)»,		/* PDO_TRS */ 
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("PDO_TRS_MAP",0)», 	/* PDO_TRS_MAP */
+};
+
+const quick_index «getNMT().get(0).deviceCommissioning.nodeName»_lastIndex = {
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("SDO_SVR",1)»,		/* SDO_SVR */
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("SDO_CLT",1)»,		/* SDO_CLT */
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("PDO_RCV",1)»,		/* PDO_RCV */
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("PDO_RCV_MAP",1)», 	/* PDO_RCV_MAP */
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("PDO_TRS",1)»,		/* PDO_TRS */ 
+«getAppLayer().get(0).cANopenObjectList.toString().toString().quickIndex("PDO_TRS_MAP",1)», 	/* PDO_TRS_MAP */
+};
+
+
+const UNS16 «getNMT().get(0).deviceCommissioning.nodeName»_ObjdictSize = sizeof(«getNMT().get(0).deviceCommissioning.nodeName»_objdict)/sizeof(«getNMT().get(0).deviceCommissioning.nodeName»_objdict[0]); 
+
+CO_Data «getNMT().get(0).deviceCommissioning.nodeName»_Data = CANOPEN_NODE_DATA_INITIALIZER(«getNMT().get(0).deviceCommissioning.nodeName»);
+#endif // «getName().toUpperCase()»
+
+«ENDFILE»	
+«ENDDEFINE»
+
+«DEFINE COMMENT_H FOR caNopen::ISO15745ProfileContainerType»
+/**
+ *  This file is automaticaly generated by the OAW Workflow
+ *  
+ *  @file «getName()».h
+ *  @author 
+ *  @date 
+ *  @defgroup «getName().toUpperCase()»
+ *  @ingroup od
+ * 
+ *  @brief Based on CanFestival generator implementation (gen_cfile.py) but using xdd file as Import and xsd Model from CANopen (http://www.can-cia.org/).
+ */	
+«ENDDEFINE»
+
+«DEFINE COMMENT_C FOR caNopen::ISO15745ProfileContainerType»
+/**
+ *  This file is automaticaly generated by the OAW Workflow
+ *
+ *  @file «getName()».c
+ *	@author 
+ *  @date 
+ * 
+ *  @ingroup od
+ *  @brief Based on CanFestival generator implementation (gen_cfile.py) but using xdd file as Import and xsd Model from CANopen (http://www.can-cia.org/).
+ */	
+«ENDDEFINE»
+
+
+«DEFINE VALUE_RANGE_DEFINE FOR caNopen::CANopenObjectType-»
+«IF !isArrayRecordDefstruct()-»
+#define valueRange_«index» 0x«index» /* Type «dataType.toString().getDataType()», «lowLimit» < value < «highLimit» */
+«ELSE-»
+#define valueRange_«index» 0x«index» /* Type «dataType.toString().getDataType()», «lowLimit» < value < «highLimit»  DEFSTRUCT NOT YET IMPLEMENTED */
+«ENDIF-»
+«ENDDEFINE»
+
+«DEFINE VALUE_RANGE_SWITCH FOR caNopen::CANopenObjectType-»
+	case valueRange_«index»:
+«IF isArrayRecordDefstruct() || lowLimit.toString() == " " || lowLimit.toString() == "null"-»
+      /* Negative or null low limit ignored because of unsigned type */
+«ELSE-»
+      if (*(«dataType.toString().getDataType()»*)value < («dataType.toString().getDataType()»)«lowLimit.toString().asInteger()») return OD_VALUE_TOO_LOW;  
+	«IF !isArrayRecordDefstruct()-»
+      if (*(«dataType.toString().getDataType()»*)value > («dataType.toString().getDataType()»)«highLimit.toString().asInteger()») return OD_VALUE_TOO_HIGH;
+	«ENDIF-»
+«ENDIF-»
+      break;
+«ENDDEFINE»
+
+«REM» DOKUMENTATION PURPOSE «ENDREM»
+
+«DEFINE OD_DOCUMENTATION FOR caNopen::ISO15745ProfileContainerType»
+«FILE "od_DocX"+getName()+".tex"»
+
+\documentclass[11pt,a4paper,oneside]{scrreprt} 
+\usepackage{longtable}
+
+\begin{document}
+
+
+\section{Objectdictionary}
+
+\begin{longtable}{| l | c | c | c | c |}
+    \hline
+    
+    \textbf{Name} & \textbf{Datentyp} & \textbf{Wert} & \textbf{Index} & \textbf{Subindex} \\ \hline \hline
+«FOREACH getAppLayer().get(0).cANopenObjectList.cANopenObject AS canObject-»
+				  	«IF !canObject.isArrayRecordDefstruct()-»
+				  		«IF canObject.defaultValue.toString() != "null"-»
+	\texttt{«canObject.name.toString().filterString2()»} & «canObject.dataType.toString().getDataType()» & «canObject.defaultValue.toString().filterString2()» & 0x«canObject.index» & 0  	\\ \hline								
+						«ELSE-»
+						   «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.isEmpty-»
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+		\texttt{«canObject.name.toString().filterString2()»} & «canObject.dataType.toString().getDataType()» & «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canObject.uniqueIDRef).defaultValue.get(0).value.toString().filterString2()» & 0x«canObject.index» & 0  	\\ \hline								
+								«ELSE-»
+		\texttt{«canObject.name.toString().filterString2()»} & «canObject.dataType.toString().getDataType()» & 0 & 0x«canObject.index» & 0  	\\ \hline								
+								«ENDIF-»
+							«ELSE-»
+		\texttt{«canObject.name.toString().filterString2()»} & «canObject.dataType.toString().getDataType()» & 0 & 0x«canObject.index» & 0  	\\ \hline								
+							«ENDIF-»
+						«ENDIF-»				  	
+					«ELSE-»
+						«FOREACH canObject.cANopenSubObject AS canSubObject ITERATOR iter-»
+		  				«IF iter.counter0 == 0-»
+								«IF canObject.defaultValue.toString() != "null"-»
+	\texttt{«canObject.name.toString().filterString2()»} & «canSubObject.dataType.toString().getDataType()» & «canObject.defaultValue.toString().filterString2()» & 0x«canObject.index» & 0x«canSubObject.subIndex» 	\\ \hline														
+								«ELSE-»							
+	\texttt{«canObject.name.toString().filterString2()»} & «canSubObject.dataType.toString().getDataType()» & 0 & 0x«canObject.index» & 0x«canSubObject.subIndex» 	\\ \hline							
+								«ENDIF-»	
+						«ELSE-»
+						   «IF !getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.isEmpty-»
+								«IF getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).toString() != "null"-»
+	\hspace{1cm}\textit{«canSubObject.name.toString().filterString2()»} & «canSubObject.dataType.toString().getDataType()» & «getAppProc().get(0).parameterList.parameter.select(e|e.uniqueID == canSubObject.uniqueIDRef).defaultValue.get(0).value.toString().filterString2()» & 0x«canObject.index» & 0x«canSubObject.subIndex» 	\\ \hline							
+								«ELSE-»
+	\hspace{1cm}\textit{«canSubObject.name.toString().filterString2()»} & «canSubObject.dataType.toString().getDataType()» & 0 & 0x«canObject.index» & 0x«canSubObject.subIndex» 	\\ \hline							
+								«ENDIF-»
+							«ENDIF-»
+						«ENDIF-»	
+						«ENDFOREACH-»									
+					«ENDIF-»	
+«ENDFOREACH»
+    \hline
+\end{longtable}
+
+\end{document}
+
+«ENDFILE»
+«ENDDEFINE»
+
