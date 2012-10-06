@@ -1,0 +1,10 @@
+#!/bin/bash
+"${JAVA_HOME:-/usr}/bin/java" -Xmx512M -jar `dirname $0`/CANopenMWE2CanFestivalCLI.jar -m $1 "$@"
+name="od_DocX*";
+file=${name/xml/tex};
+pdffile=${name/xml/pdf};
+mkdir tmp
+pdflatex -output-directory tmp ${file};
+mv tmp/${pdffile} .
+rm -rf tmp
+#rm ${file}
